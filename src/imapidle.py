@@ -6,20 +6,20 @@ import imaplib
 
 def idle(connection):
     tag = connection._new_tag()
-    connection.send("%s IDLE\r\n" % tag)
+    connection.send("{} IDLE\r\n".format(tag).encode('utf8'))
     response = connection.readline()
     connection.loop = True
-    if response == '+ idling\r\n':
+    if response == b'+ idling\r\n':
         while connection.loop:
             resp = connection.readline()
-            uid, message = resp[2:-2].split(' ')
+            uid, message = resp[2:-2].decode('utf8').split(' ')
             yield uid, message
     else:
-        raise Exception("IDLE not handled? : %s" % response)
+        raise Exception("IDLE not handled? : {}".format(response))
 
 
 def done(connection):
-    connection.send("DONE\r\n")
+    connection.send("DONE\r\n".encode('utf8'))
     connection.loop = False
 
 imaplib.IMAP4.idle = idle
@@ -30,18 +30,18 @@ if __name__ == '__main__':
     from lamson.mail import MailRequest
     user = os.environ['EMAIL']
     password = os.environ['PASSWORD']
-    print os.environ['SERVER']
+    print(os.environ['SERVER'])
     conn = imaplib.IMAP4_SSL(os.environ['SERVER'])
     conn.login(user, password)
     conn.select()
     loop = True
     while loop:
         for uid, msg in conn.idle():
-            print uid, msg
+            print(uid, msg)
             if msg == "EXISTS":
                 conn.done()
                 status, datas = conn.fetch(uid, '(RFC822)')
                 m = MailRequest('localhost', None, None, datas[0][1])
-                print m.keys()
-                print m.all_parts()
-                print m.is_bounce()
+                print(m.keys())
+                print(m.all_parts())
+                print(m.is_bounce())
